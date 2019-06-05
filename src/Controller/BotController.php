@@ -5,6 +5,7 @@ namespace App\Controller;
 
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use WowApps\SlackBundle\DTO\Attachment;
@@ -42,28 +43,37 @@ class BotController extends AbstractController
     /**
      * @Route("/set_rapid_view/{viewId}")
      * @param int $viewId
+     *
+     * @return JsonResponse
      */
-    public function setRapidViewId(int $viewId): void
+    public function setRapidViewId(int $viewId): JsonResponse
     {
         $this->rapidViewId = $viewId;
+        return $this->json(true);
     }
 
     /**
      * @Route("/set_sprint/{sprintId}")*
      * @param int $sprintId
+     *
+     * @return JsonResponse
      */
-    public function setSprintId($sprintId): void
+    public function setSprintId($sprintId): JsonResponse
     {
         $this->sprintId = $sprintId;
+        return $this->json(true);
     }
 
     /**
      * @Route("/set_post_time/{postTime}")
      * @param string $postTime
+     *
+     * @return JsonResponse
      */
-    public function setPostTime($postTime): void
+    public function setPostTime($postTime): JsonResponse
     {
         $this->postTime = $postTime;
+        return $this->json(true);
     }
 
     public function postBurndown(string $channel = 'my-test')
