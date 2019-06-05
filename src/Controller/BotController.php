@@ -53,7 +53,7 @@ class BotController extends AbstractController
     }
 
     /**
-     * @Route("/set_sprint/{sprintId}")*
+     * @Route("/set_sprint/{sprintId}")
      * @param int $sprintId
      *
      * @return JsonResponse
