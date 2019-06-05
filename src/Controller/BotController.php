@@ -4,13 +4,14 @@
 namespace App\Controller;
 
 
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use WowApps\SlackBundle\DTO\Attachment;
 use WowApps\SlackBundle\DTO\SlackMessage;
 use WowApps\SlackBundle\Service\SlackBot;
 
-class BotController
+class BotController extends AbstractController
 {
     private $bot;
     private $rapidViewId;
