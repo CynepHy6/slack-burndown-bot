@@ -4,6 +4,7 @@
 namespace App\Controller;
 
 
+use Symfony\Component\Routing\Annotation\Route;
 use WowApps\SlackBundle\DTO\Attachment;
 use WowApps\SlackBundle\DTO\SlackMessage;
 use WowApps\SlackBundle\Service\SlackBot;
@@ -15,6 +16,13 @@ class BotController
     private $sprintId;
     private $postTime;
 
+    /**
+     * @Route('/')
+     */
+    public function index()
+    {
+        return 'server works';
+    }
 
     /**
      * BotController constructor.
