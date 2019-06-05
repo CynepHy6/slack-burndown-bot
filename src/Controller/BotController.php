@@ -4,6 +4,7 @@
 namespace App\Controller;
 
 
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use WowApps\SlackBundle\DTO\Attachment;
 use WowApps\SlackBundle\DTO\SlackMessage;
@@ -17,11 +18,13 @@ class BotController
     private $postTime;
 
     /**
-     * @Route('/')
+     * @Route("/")
      */
-    public function index()
+    public function index(): string
     {
-        return 'server works';
+        return new Response(
+            '<html><body>SERVER WORKS</body></html>'
+        );
     }
 
     /**
