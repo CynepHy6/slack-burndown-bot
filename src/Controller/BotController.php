@@ -49,7 +49,10 @@ class BotController extends AbstractController
     public function setRapidViewId(int $viewId): JsonResponse
     {
         $this->rapidViewId = $viewId;
-        return $this->json(true);
+        return $this->json([
+            'status'      => 'ok',
+            'rapidViewId' => $this->rapidViewId,
+        ]);
     }
 
     /**
@@ -61,7 +64,10 @@ class BotController extends AbstractController
     public function setSprintId($sprintId): JsonResponse
     {
         $this->sprintId = $sprintId;
-        return $this->json(true);
+        return $this->json([
+            'status'      => 'ok',
+            'sprintId' => $this->sprintId,
+        ]);
     }
 
     /**
@@ -73,7 +79,10 @@ class BotController extends AbstractController
     public function setPostTime($postTime): JsonResponse
     {
         $this->postTime = $postTime;
-        return $this->json(true);
+        return $this->json([
+            'status'      => 'ok',
+            'postTime' => $this->postTime,
+        ]);
     }
 
     public function postBurndown(string $channel = 'my-test')
