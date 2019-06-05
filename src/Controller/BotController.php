@@ -20,8 +20,9 @@ class BotController extends AbstractController
 
     /**
      * @Route("/")
+     * @return Response
      */
-    public function index(): string
+    public function index(): Response
     {
         return new Response(
             '<html><body>SERVER WORKS</body></html>'
@@ -39,6 +40,7 @@ class BotController extends AbstractController
     }
 
     /**
+     * @Route("/set_rapid_view/{viewId}")
      * @param int $viewId
      */
     public function setRapidViewId(int $viewId): void
@@ -47,6 +49,7 @@ class BotController extends AbstractController
     }
 
     /**
+     * @Route("/set_sprint/{sprintId}")*
      * @param int $sprintId
      */
     public function setSprintId($sprintId): void
@@ -55,6 +58,7 @@ class BotController extends AbstractController
     }
 
     /**
+     * @Route("/set_post_time/{postTime}")
      * @param string $postTime
      */
     public function setPostTime($postTime): void
