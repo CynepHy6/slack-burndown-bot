@@ -199,6 +199,9 @@
     "symfony/yaml": {
         "version": "v4.3.0"
     },
+    "szymach/c-pchart": {
+        "version": "v3.0.7"
+    },
     "wow-apps/symfony-slack-bot": {
         "version": "4.0",
         "recipe": {

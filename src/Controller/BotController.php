@@ -5,7 +5,6 @@ namespace App\Controller;
 
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -19,6 +18,7 @@ class BotController extends AbstractController
     private $rapidViewId;
     private $sprintId;
     private $postTime;
+    private $token;
 
     /**
      * @Route("/")
@@ -27,7 +27,7 @@ class BotController extends AbstractController
     public function index(): Response
     {
         return new Response(
-            '<html><body>SERVER WORKS</body></html>'
+            '<html><body>SERVER WORKS!!</body></html>'
         );
     }
 
@@ -39,52 +39,54 @@ class BotController extends AbstractController
     public function __construct(SlackBot $bot)
     {
         $this->bot = $bot;
+        $this->rapidViewId = 303;
+        $this->sprintId = 906;
     }
 
     /**
      * @Route("/set_rapid_view")
-     * @param int $viewId
      *
-     * @return JsonResponse
+     * @param Request $request
+     *
+     * @return Response
      */
-    public function setRapidViewId(Request $request): JsonResponse
+    public function setRapidViewId(Request $request): Response
     {
-        var_dump($request->attributes);
+        $text = $request->get('text');
+        $this->validate($text, 'integer');
+        $id = (int) $text;
 
-        return $this->json([
-            'status'      => 'ok'
-        ]);
+        return new Response('Значение *view_id* установлено');
     }
 
     /**
-     * @Route("/set_sprint/{sprintId}")
-     * @param int $sprintId
+     * @Route("/set_sprint")
      *
-     * @return JsonResponse
+     * @return Response
      */
-    public function setSprintId($sprintId): JsonResponse
+    public function setSprintId(Request $request): Response
     {
-        $this->sprintId = $sprintId;
-        return $this->json([
-            'status'      => 'ok',
-        ]);
+        $text = $request->get('text');
+        $this->validate($text, 'integer');
+        $id = (int) $text;
+
+        return new Response('Значение *sprint_id* установлено');
     }
 
     /**
-     * @Route("/set_post_time/{postTime}")
-     * @param string $postTime
+     * @Route("/set_post_time")
      *
-     * @return JsonResponse
+     * @return Response
      */
-    public function setPostTime($postTime): JsonResponse
+    public function setPostTime(Request $request): Response
     {
-        $this->postTime = $postTime;
-        return $this->json([
-            'status'      => 'ok',
-        ]);
+        $time = $request->get('text');
+        $this->validate($time, 'time');
+
+        return new Response('Значение *post_time* установлено');
     }
 
-    public function postBurndown(string $channel = 'my-test')
+    public function postBurndown(string $channel = 'my-test'): void
     {
         $imageUrl = $this->getImage();
         $chart = new Attachment();
@@ -95,10 +97,29 @@ class BotController extends AbstractController
         $this->bot->send($message);
     }
 
-    private function getImage()
+    private function getImage(): string
     {
         //        TODO this
         return '';
     }
 
+    private function getData(): string
+    {
+        $url = sprintf('https://devjira.skyeng.ru/rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart?rapidViewId=%d&sprintId=%d',
+            $this->rapidViewId, $this->sprintId);
+
+        return '';
+    }
+
+    private function validate($var, $type): ?Response
+    {
+        if ($type === 'integer' && !preg_match('/^\d+$/', $var)) {
+            return new Response('Неправильно. Для параметра *id* необходимо вводить целое число');
+
+        }
+
+        if ($type === 'time' && !preg_match('/^\d{2}:\d{2}(:?:\d{2})?$/', $var)) {
+            return new Response('Неправильно. Для параметра *time* необходимо вводить время (hh:mm)');
+        }
+    }
 }

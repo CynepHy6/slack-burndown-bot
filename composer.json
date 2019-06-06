@@ -12,6 +12,7 @@
     "symfony/flex": "^1.1",
     "symfony/framework-bundle": "4.3.*",
     "symfony/yaml": "4.3.*",
+    "szymach/c-pchart": "^3.0",
     "wow-apps/symfony-slack-bot": "^4.0"
   },
   "require-dev": {
