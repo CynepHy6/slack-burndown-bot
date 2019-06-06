@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use WowApps\SlackBundle\DTO\Attachment;
@@ -41,17 +42,17 @@ class BotController extends AbstractController
     }
 
     /**
-     * @Route("/set_rapid_view/{viewId}")
+     * @Route("/set_rapid_view")
      * @param int $viewId
      *
      * @return JsonResponse
      */
-    public function setRapidViewId(int $viewId): JsonResponse
+    public function setRapidViewId(Request $request): JsonResponse
     {
-        $this->rapidViewId = $viewId;
+        var_dump($request->attributes);
+
         return $this->json([
-            'status'      => 'ok',
-            'rapidViewId' => $this->rapidViewId,
+            'status'      => 'ok'
         ]);
     }
 
@@ -66,7 +67,6 @@ class BotController extends AbstractController
         $this->sprintId = $sprintId;
         return $this->json([
             'status'      => 'ok',
-            'sprintId' => $this->sprintId,
         ]);
     }
 
@@ -81,7 +81,6 @@ class BotController extends AbstractController
         $this->postTime = $postTime;
         return $this->json([
             'status'      => 'ok',
-            'postTime' => $this->postTime,
         ]);
     }
 
