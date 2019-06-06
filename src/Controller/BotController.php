@@ -26,21 +26,23 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
+        $t = $this->token;
         return new Response(
-            '<html><body>SERVER WORKS!!</body></html>'
+            "<html><body><pre >$t</pre>SERVER WORKS!!</body></html>"
         );
     }
 
     /**
      * BotController constructor.
      *
-     * @param $bot
+     * @param SlackBot $bot
      */
     public function __construct(SlackBot $bot)
     {
         $this->bot = $bot;
         $this->rapidViewId = 303;
         $this->sprintId = 906;
+        $this->token = getenv('ATLASSIAN_API_TOKEN');
     }
 
     /**
