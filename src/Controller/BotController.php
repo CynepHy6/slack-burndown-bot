@@ -4,7 +4,8 @@
 namespace App\Controller;
 
 
-use App\Utils;
+use App\BurnDownBuilder;
+use App\SprintJsonReader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,10 +28,10 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
-        $data = $this->getChartPath();
-        return new Response(
-            $data
-        );
+//        $data = $this->getChart();
+//        return new Response(
+//            $data
+//        );
     }
 
     /**
@@ -58,6 +59,8 @@ class BotController extends AbstractController
         $text = $request->get('text');
         $this->validate($text, 'integer');
         $this->rapidViewId = (int) $text;
+
+//        $this->postBurndown();
 
         return new Response('Значение *view_id* установлено');
     }
@@ -94,23 +97,17 @@ class BotController extends AbstractController
 
     public function postBurndown(string $channel = 'my-test'): void
     {
-        $imageUrl = $this->getChartPath();
+        $image = $this->getChart();
         $chart = new Attachment();
-        $chart->setImageUrl($imageUrl);
+        $chart->setImageUrl($image);
         $message = new SlackMessage('Cвежий Burndown Chart');
         $message->setChannel($channel);
         $message->appendAttachment($chart);
         $this->bot->send($message);
     }
 
-    private function getChartPath(): string
-    {
-        $data = $this->getData();
 
-        return '';
-    }
-
-    private function getData(): array
+    private function getChart(): string
     {
         $params = http_build_query([
             'rapidViewId' => $this->rapidViewId,
@@ -126,10 +123,11 @@ class BotController extends AbstractController
                     "Authorization: Basic $key\r\n",
             ],
         ]);
-
         $jsonData = file_get_contents($url, false, $context);
+        $reader = new SprintJsonReader($jsonData);
+        $builder = new BurnDownBuilder($reader);
 
-        return Utils::prepareBurndownData($jsonData);
+        return $builder->build();
     }
 
     private function validate($var, $type): ?Response

@@ -3,33 +3,39 @@
 
 namespace App;
 
+use CpChart\Data;
+use CpChart\Image;
+use Symfony\Component\Config\Definition\Exception\Exception;
 
 class Utils
 {
-    public static function prepareBurndownData($data): array
-    {
-        $reader = new SprintJsonReader($data);
-        $targetLine = [
-            ['x' => $reader->sprint_start, 'y' => $reader->startEstimation()],
-            ['x' => $reader->sprint_end, 'y' => 0],
-        ];
-        $loggedLine = [];
-        $realLine = [];
-        $lines = [
-            ['name' => 'Target', 'color' => '#959595', 'data' => $targetLine],
-            ['name' => 'Logged', 'color' => '#10cd10', 'data ' => $loggedLine],
-            ['name ' => 'Real', 'color ' => '#cd1010', 'data' => $realLine],
-        ];
-        return $lines;
-
-    }
-
-    public function flatten(array $array)
+    public static function flatten(array $array, $key = ''): array
     {
         $return = [];
-        array_walk_recursive($array, static function ($a) use (&$return) {
-            $return[] = $a;
-        });
+        if ($key === '') {
+            array_walk_recursive($array, static function ($a) use (&$return) {
+                $return[] = $a;
+            });
+        } else {
+            array_walk_recursive($array, static function ($a, $k) use (&$return, &$key) {
+                if ($k === $key) {
+                    $return[] = $a;
+                }
+            });
+        }
         return $return;
     }
+
+    public static function log(...$a): void
+    {
+        echo json_encode($a, JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * @param array $lines
+     *
+     * @return string path to image
+     * @throws \Exception
+     */
+
 }

@@ -28,7 +28,7 @@ class SprintJsonReader
     {
         $this->json = json_decode($json, true);
         $this->sprint_start = (int) ($this->json['startTime'] / 1000);
-        $this->sprint_end = (int) ($this->json['startTime'] / 1000);
+        $this->sprint_end = (int) ($this->json['endTime'] / 1000);
 
     }
 
@@ -57,65 +57,59 @@ class SprintJsonReader
             });
             $res[] = [date('Y-m-d H:i:s', (int) ($key / 1000)), $timeChanges];
         }
-
         return $res;
     }
 
     public function startEstimation(): int
     {
-        $res = 0;
-        $data = array_filter($this->jsonChangesByDateTime(), function ($key, $val) {
-            return $key < $this->sprintStart();
-        }, ARRAY_FILTER_USE_BOTH);
-        var_dump($data);
-        return $res;
+        $data = [];
+        foreach ($this->jsonChangesByDateTime() as $item) {
+            foreach ($item as $key => $val) {
+                if ($key < $this->sprintStart()) {
+                    $data[] = [$key => $val];
+                }
+            }
+        }
+        $data = Utils::flatten($data, 'newEstimate');
+        return array_sum($data);
     }
-    /*
-    class SprintJsonReader
-      def startEstimation
-        jsonChangesByDateTime.find_all { |key, value|
-          key < sprintStart
-        }.flat_map { |key, value|
-          value.map { |singleStory|
-            [key, singleStory]
-          }
-        }.reverse_each.reduce([]) {|hash, entry|
-          containsItem = hash.find{|tempEntry|
-            tempEntry[1]["key"] == entry[1]["key"]
-          }
-          if containsItem.nil?
-            hash.push([entry[0], entry[1]])
-          else
-            hash
-          end
-        }.reduce(0) {|estimation, entry|
-          estimation + entry[1]["timeC"]["newEstimate"].to_i
-        }
-      end
 
-      def changesDuringSprint
-        jsonChangesByDateTime.find_all { |key, value|
-          key > sprintStart && key < sprintEnd
-        }.map { |key, value|
-          durationChange = value.reduce(0) {|res, story|
-            res - (story["timeC"]["oldEstimate"].to_i - story["timeC"]["newEstimate"].to_i)
-          }
-          [key, durationChange]
-        }.find_all { |key, value|
-          value != 0
-        }
-      end
+    public function changesDuringSprint(): array
+    {
+        $data = array_filter($this->jsonChangesByDateTime(), function ($val) {
+            return $val[0] > $this->sprintStart() && $val[0] < $this->sprintEnd();
+        });
+        $data = array_map(static function ($item) {
+            [$key, $value] = $item;
+            $durationChange = array_reduce($value, static function ($sum, $val) {
+                $sum -= ((int) $val['timeC']['oldEstimate'] - (int) $val['timeC']['newEstimate']);
+                return $sum;
 
-      def loggedTimeInSprint
-        jsonChangesByDateTime.find_all { |key, value|
-          key > sprintStart && key < sprintEnd
-        }.map { |key, value|
-          timeSpent = value.reduce(0) {|res, story|
-            res + story["timeC"]["timeSpent"].to_i
-          }
-          [key, timeSpent]
-        }
-      end
-    end
-     */
+            }, 0);
+            return [$key, $durationChange];
+        }, $data);
+        $data = array_filter($data, static function ($val) {
+            return $val[1] !== 0;
+        });
+        return $data;
+    }
+
+    public function loggedTimeInSprint(): array
+    {
+        $data = array_filter($this->jsonChangesByDateTime(), function ($val) {
+            return $val[0] > $this->sprintStart() && $val[0] < $this->sprintEnd();
+        });
+
+        $data = array_map(static function($item){
+            [$key, $value] = $item;
+            $timeSpent = array_reduce($value, static function($sum, $val){
+                if (isset($val['timeC']['timeSpent'])) {
+                    $sum += (int) $val['timeC']['timeSpent'];
+                }
+                return $sum;
+            });
+            return [$key, $timeSpent];
+        }, $data);
+        return $data;
+    }
 }
