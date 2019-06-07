@@ -4,6 +4,7 @@
 namespace App\Controller;
 
 
+use App\Utils;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,9 +27,9 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
-        $t = $this->token;
+        $data = $this->getChartPath();
         return new Response(
-            "<html><body><pre >$t</pre>SERVER WORKS!!</body></html>"
+            $data
         );
     }
 
@@ -40,9 +41,9 @@ class BotController extends AbstractController
     public function __construct(SlackBot $bot)
     {
         $this->bot = $bot;
-        $this->rapidViewId = 303;
-        $this->sprintId = 906;
-        $this->token = getenv('ATLASSIAN_API_TOKEN');
+        $this->rapidViewId = '303';
+        $this->sprintId = '906';
+        $this->token = $_ENV['ATLASSIAN_API_TOKEN'];
     }
 
     /**
@@ -56,7 +57,7 @@ class BotController extends AbstractController
     {
         $text = $request->get('text');
         $this->validate($text, 'integer');
-        $id = (int) $text;
+        $this->rapidViewId = (int) $text;
 
         return new Response('Значение *view_id* установлено');
     }
@@ -64,13 +65,15 @@ class BotController extends AbstractController
     /**
      * @Route("/set_sprint")
      *
+     * @param Request $request
+     *
      * @return Response
      */
     public function setSprintId(Request $request): Response
     {
         $text = $request->get('text');
         $this->validate($text, 'integer');
-        $id = (int) $text;
+        $this->sprintId = (int) $text;
 
         return new Response('Значение *sprint_id* установлено');
     }
@@ -84,13 +87,14 @@ class BotController extends AbstractController
     {
         $time = $request->get('text');
         $this->validate($time, 'time');
+        $this->postTime = $time;
 
         return new Response('Значение *post_time* установлено');
     }
 
     public function postBurndown(string $channel = 'my-test'): void
     {
-        $imageUrl = $this->getImage();
+        $imageUrl = $this->getChartPath();
         $chart = new Attachment();
         $chart->setImageUrl($imageUrl);
         $message = new SlackMessage('Cвежий Burndown Chart');
@@ -99,18 +103,33 @@ class BotController extends AbstractController
         $this->bot->send($message);
     }
 
-    private function getImage(): string
+    private function getChartPath(): string
     {
-        //        TODO this
+        $data = $this->getData();
+
         return '';
     }
 
-    private function getData(): string
+    private function getData(): array
     {
-        $url = sprintf('https://devjira.skyeng.ru/rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart?rapidViewId=%d&sprintId=%d',
-            $this->rapidViewId, $this->sprintId);
+        $params = http_build_query([
+            'rapidViewId' => $this->rapidViewId,
+            'sprintId'    => $this->sprintId,
+        ]);
+        $url = 'https://devjira.skyeng.ru/rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart?' . $params;
+        $key = $this->token;
 
-        return '';
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'header' => "Content-Type: application/json\r\n" .
+                    "Authorization: Basic $key\r\n",
+            ],
+        ]);
+
+        $jsonData = file_get_contents($url, false, $context);
+
+        return Utils::prepareBurndownData($jsonData);
     }
 
     private function validate($var, $type): ?Response

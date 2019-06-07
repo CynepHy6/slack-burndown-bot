@@ -13,7 +13,8 @@
     "symfony/framework-bundle": "4.3.*",
     "symfony/yaml": "4.3.*",
     "szymach/c-pchart": "^3.0",
-    "wow-apps/symfony-slack-bot": "^4.0"
+    "wow-apps/symfony-slack-bot": "^4.0",
+    "ext-json": "*"
   },
   "require-dev": {
     "roave/security-advisories": "dev-master"
