@@ -100,9 +100,9 @@ class SprintJsonReader
             return $val[0] > $this->sprintStart() && $val[0] < $this->sprintEnd();
         });
 
-        $data = array_map(static function($item){
+        $data = array_map(static function ($item) {
             [$key, $value] = $item;
-            $timeSpent = array_reduce($value, static function($sum, $val){
+            $timeSpent = array_reduce($value, static function ($sum, $val) {
                 if (isset($val['timeC']['timeSpent'])) {
                     $sum += (int) $val['timeC']['timeSpent'];
                 }

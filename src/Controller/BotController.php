@@ -6,6 +6,8 @@ namespace App\Controller;
 
 use App\BurnDownBuilder;
 use App\SprintJsonReader;
+use App\Utils;
+use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,18 +23,8 @@ class BotController extends AbstractController
     private $sprintId;
     private $postTime;
     private $token;
+    private $serverUrl;
 
-    /**
-     * @Route("/")
-     * @return Response
-     */
-    public function index(): Response
-    {
-//        $data = $this->getChart();
-//        return new Response(
-//            $data
-//        );
-    }
 
     /**
      * BotController constructor.
@@ -45,6 +37,20 @@ class BotController extends AbstractController
         $this->rapidViewId = '303';
         $this->sprintId = '906';
         $this->token = $_ENV['ATLASSIAN_API_TOKEN'];
+        $this->serverUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+    }
+
+    /**
+     * @Route("/")
+     * @return Response
+     */
+    public function index(): Response
+    {
+//        $res = $this->postBurndown();
+        $res = $this->createChart('.');
+        return new Response(
+            "<html><body><img src='$res' alt=''></body></html>"
+        );
     }
 
     /**
@@ -57,10 +63,8 @@ class BotController extends AbstractController
     public function setRapidViewId(Request $request): Response
     {
         $text = $request->get('text');
-        $this->validate($text, 'integer');
+        Utils::validate($text, 'integer');
         $this->rapidViewId = (int) $text;
-
-//        $this->postBurndown();
 
         return new Response('Значение *view_id* установлено');
     }
@@ -75,7 +79,7 @@ class BotController extends AbstractController
     public function setSprintId(Request $request): Response
     {
         $text = $request->get('text');
-        $this->validate($text, 'integer');
+        Utils::validate($text, 'integer');
         $this->sprintId = (int) $text;
 
         return new Response('Значение *sprint_id* установлено');
@@ -89,25 +93,30 @@ class BotController extends AbstractController
     public function setPostTime(Request $request): Response
     {
         $time = $request->get('text');
-        $this->validate($time, 'time');
+        Utils::validate($time, 'time');
         $this->postTime = $time;
 
         return new Response('Значение *post_time* установлено');
     }
 
-    public function postBurndown(string $channel = 'my-test'): void
+    public function postBurndown(string $channel = 'my-test'): bool
     {
-        $image = $this->getChart();
+        $imgDir = 'img/' . $channel;
+        if (!is_dir($imgDir) && !mkdir($imgDir, 0777, true)) {
+            throw new RuntimeException(sprintf('Directory "%s" was not created', $imgDir));
+        }
+        $imgPath = $this->createChart($imgDir);
         $chart = new Attachment();
-        $chart->setImageUrl($image);
-        $message = new SlackMessage('Cвежий Burndown Chart');
+        $chart->setColor('info');
+        $chart->setImageUrl($this->serverUrl . '/' . $imgPath);
+        $message = new SlackMessage('');
         $message->setChannel($channel);
         $message->appendAttachment($chart);
-        $this->bot->send($message);
+        return $this->bot->send($message);
     }
 
 
-    private function getChart(): string
+    private function createChart($imgDir): string
     {
         $params = http_build_query([
             'rapidViewId' => $this->rapidViewId,
@@ -127,18 +136,6 @@ class BotController extends AbstractController
         $reader = new SprintJsonReader($jsonData);
         $builder = new BurnDownBuilder($reader);
 
-        return $builder->build();
-    }
-
-    private function validate($var, $type): ?Response
-    {
-        if ($type === 'integer' && !preg_match('/^\d+$/', $var)) {
-            return new Response('Неправильно. Для параметра *id* необходимо вводить целое число');
-
-        }
-
-        if ($type === 'time' && !preg_match('/^\d{2}:\d{2}(:?:\d{2})?$/', $var)) {
-            return new Response('Неправильно. Для параметра *time* необходимо вводить время (hh:mm)');
-        }
+        return $builder->build($imgDir);
     }
 }

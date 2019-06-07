@@ -21,7 +21,14 @@ class BurnDownBuilder
         $this->reader = $reader;
     }
 
-    public function build(): string
+    /**
+     * @param $imgDir
+     * converted function from Ruby to PHP
+     * https://github.com/vossim/dashing-jira-burndown/blob/master/jobs/jira_burndown.rb#buildBurnDown
+     *
+     * @return string
+     */
+    public function build($imgDir): string
     {
         $targetLine = [
             ['x' => $this->reader->sprint_start, 'y' => $this->reader->startEstimation()],
@@ -59,33 +66,35 @@ class BurnDownBuilder
         $loggedLine[] = ['x' => $lastEntry, 'y' => $last['y']];
 
         $lines = [
-            ['name' => 'Target', 'color' => '#959595', 'data' => $targetLine],
-            ['name' => 'Logged', 'color' => '#10cd10', 'data' => $loggedLine],
-            ['name' => 'Real', 'color' => '#cd1010', 'data' => $realLine],
+            'data'   => [
+                ['name' => 'Target', 'data' => $targetLine],
+                ['name' => 'Logged', 'data' => $loggedLine],
+                ['name' => 'Real', 'data' => $realLine],
+            ],
+            'common' => [],
         ];
+        $lines = $this->prepareData($lines);
 
-        return $this->createChart($lines);
+        return $this->createChart($lines, $imgDir);
     }
 
-    public function createChart(array $lines): string
+    public function createChart(array $lines, string $imgDir): string
     {
         /* Build a dataset */
         $data = new Data();
-        foreach ($lines as $chartData) {
-            $points = Utils::flatten($chartData['data'], 'y');
-            $data->addPoints($points, $chartData['name']);
-            //            $data->setSerieTicks("Probe 2", 4);
-            //            $data->setSerieWeight("Probe 3", 2);
-            $data->setAxisName(0, 'Axis 0');
-            $data->addPoints(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], 'Labels');
-            $data->setSerieDescription('Labels', 'Months');
-            $data->setAbscissa('Labels');
+        foreach ($lines['data'] as $chartData) {
+            $data->addPoints($chartData['data'], $chartData['name']);
         }
+        $data->setAxisName(0, 'Time spent');
+        $data->addPoints($lines['common'], 'Labels');
+        $data->setSerieDescription('Labels', 'Date');
+        $data->setAbscissa('Labels');
+        $data->setAbscissaName('Date record');
 
         /* Create the 1st chart */
         $width = 1000;
         $height = 900;
-        $pad = 70;
+        $pad = 80;
         $image = new Image($width, $height, $data);
         $image->setGraphArea($pad, $pad, $width - $pad, $height - $pad);
         $image->drawFilledRectangle($pad, $pad, $width - $pad, $height - $pad, [
@@ -95,16 +104,45 @@ class BurnDownBuilder
             'Surrounding' => -200,
             'Alpha'       => 10,
         ]);
-        $image->drawScale(['DrawSubTicks' => true]);
+        $image->drawScale(['DrawSubTicks' => false]);
         $image->setShadow(true, ['X' => 1, 'Y' => 1, 'R' => 0, 'G' => 0, 'B' => 0, 'Alpha' => 10]);
-        $image->setFontProperties(['FontSize' => 6]);
-        $image->drawLineChart(['DisplayValues' => true, 'DisplayColor' => DISPLAY_AUTO]);
+        $image->setFontProperties(['FontSize' => 10]);
+        $image->drawLineChart(['DisplayValues' => false, 'DisplayColor' => DISPLAY_AUTO]);
         $image->setShadow(false);
 
         /* Write the legend */
-        $image->drawLegend(510, 205, ['Style' => LEGEND_NOBORDER, 'Mode' => LEGEND_HORIZONTAL]);
-        $fileName = 'example.drawLineChart.png';
-        $image->autoOutput($fileName);
+        $image->drawLegend($width / 2 - 100, $height / 4 - 100,
+            ['Style' => LEGEND_NOBORDER, 'Mode' => LEGEND_HORIZONTAL]);
+        $fileName = $imgDir . '/chart' . time() . '.png';
+        //        $image->autoOutput($fileName);
+        $image->render($fileName);
         return $fileName;
+    }
+
+    private function prepareData(array $lines)
+    {
+        $common = [];
+        foreach ($lines['data'] as $line) {
+            foreach ($line['data'] as $item) {
+                if (!isset($common[$item['x']])) {
+                    $common[$item['x']] = false;
+                }
+            }
+        }
+        $data = [];
+        ksort($common, SORT_NUMERIC);
+        //        Utils::log($common);
+
+        foreach ($lines['data'] as $line) {
+            $commonCopy = $common;
+            foreach ($line['data'] as $item) {
+                $commonCopy[$item['x']] = $item['y'] / 60;
+            }
+            $line['data'] = array_values($commonCopy);
+            $data[] = $line;
+        }
+        $lines['data'] = $data;
+        $lines['common'] = $common;
+        return $lines;
     }
 }

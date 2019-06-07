@@ -3,9 +3,7 @@
 
 namespace App;
 
-use CpChart\Data;
-use CpChart\Image;
-use Symfony\Component\Config\Definition\Exception\Exception;
+use Symfony\Component\HttpFoundation\Response;
 
 class Utils
 {
@@ -32,10 +30,21 @@ class Utils
     }
 
     /**
-     * @param array $lines
+     * @param $var string
+     * @param $type string
      *
-     * @return string path to image
-     * @throws \Exception
+     * @return bool|Response
      */
+    public static function validate($var, $type)
+    {
+        if ($type === 'integer' && !preg_match('/^\d+$/', $var)) {
+            return new Response('Неправильно. Для параметра *id* необходимо вводить целое число');
 
+        }
+
+        if ($type === 'time' && !preg_match('/^\d{2}:\d{2}(:?:\d{2})?$/', $var)) {
+            return new Response('Неправильно. Для параметра *time* необходимо вводить время (hh:mm)');
+        }
+        return true;
+    }
 }
