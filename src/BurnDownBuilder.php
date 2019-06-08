@@ -30,6 +30,7 @@ class BurnDownBuilder
      */
     public function build($imgDir): string
     {
+        // Target
         $targetLine = [
             ['x' => $this->reader->sprint_start, 'y' => $this->reader->startEstimation()],
             ['x' => $this->reader->sprint_end, 'y' => 0],
@@ -37,6 +38,7 @@ class BurnDownBuilder
         $lastEntry = time();
         $lastEntry = $lastEntry > $this->reader->sprint_end ? $this->reader->sprint_end : $lastEntry;
 
+        // Real
         $realLine = [
             ['x' => $this->reader->sprint_start, 'y' => $this->reader->startEstimation()],
         ];
@@ -51,6 +53,7 @@ class BurnDownBuilder
         $last = end($realLine);
         $realLine[] = ['x' => $lastEntry, 'y' => $last['y']];
 
+        // Logged
         $loggedLine = [
             ['x' => $this->reader->sprint_start, 'y' => 0],
         ];
@@ -76,6 +79,33 @@ class BurnDownBuilder
         $lines = $this->prepareData($lines);
 
         return $this->createChart($lines, $imgDir);
+    }
+
+    private function prepareData(array $lines): array
+    {
+        $common = [];
+        foreach ($lines['data'] as $line) {
+            foreach ($line['data'] as $item) {
+                if (!isset($common[$item['x']])) {
+                    $common[$item['x']] = VOID;
+                }
+            }
+        }
+        $data = [];
+        ksort($common, SORT_NUMERIC);
+        //        Utils::log($common);
+
+        foreach ($lines['data'] as $line) {
+            $commonCopy = $common;
+            foreach ($line['data'] as $item) {
+                $commonCopy[$item['x']] = $item['y'] / 60;
+            }
+            $line['data'] = array_values($commonCopy);
+            $data[] = $line;
+        }
+        $lines['data'] = $data;
+        $lines['common'] = $common;
+        return $lines;
     }
 
     public function createChart(array $lines, string $imgDir): string
@@ -107,7 +137,12 @@ class BurnDownBuilder
         $image->drawScale(['DrawSubTicks' => false]);
         $image->setShadow(true, ['X' => 1, 'Y' => 1, 'R' => 0, 'G' => 0, 'B' => 0, 'Alpha' => 10]);
         $image->setFontProperties(['FontSize' => 10]);
-        $image->drawLineChart(['DisplayValues' => false, 'DisplayColor' => DISPLAY_AUTO]);
+        $image->drawLineChart([
+            'DisplayValues' => false,
+            'DisplayColor'  => DISPLAY_AUTO,
+            'BreakVoid'     => false,
+            'VoidTicks'     => 0,
+        ]);
         $image->setShadow(false);
 
         /* Write the legend */
@@ -119,30 +154,4 @@ class BurnDownBuilder
         return $fileName;
     }
 
-    private function prepareData(array $lines)
-    {
-        $common = [];
-        foreach ($lines['data'] as $line) {
-            foreach ($line['data'] as $item) {
-                if (!isset($common[$item['x']])) {
-                    $common[$item['x']] = false;
-                }
-            }
-        }
-        $data = [];
-        ksort($common, SORT_NUMERIC);
-        //        Utils::log($common);
-
-        foreach ($lines['data'] as $line) {
-            $commonCopy = $common;
-            foreach ($line['data'] as $item) {
-                $commonCopy[$item['x']] = $item['y'] / 60;
-            }
-            $line['data'] = array_values($commonCopy);
-            $data[] = $line;
-        }
-        $lines['data'] = $data;
-        $lines['common'] = $common;
-        return $lines;
-    }
 }

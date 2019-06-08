@@ -46,10 +46,10 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
-//        $res = $this->postBurndown();
-        $res = $this->createChart('.');
+//        $res = $this->postBurndown('GK9T8DU7N');
+//                $res = $this->createChart('.');
         return new Response(
-            "<html><body><img src='$res' alt=''></body></html>"
+            "<html><body></body></html>"
         );
     }
 
@@ -65,6 +65,8 @@ class BotController extends AbstractController
         $text = $request->get('text');
         Utils::validate($text, 'integer');
         $this->rapidViewId = (int) $text;
+        $channel = $request->get('channel_id');
+        $this->postBurndown($channel);
 
         return new Response('Значение *view_id* установлено');
     }
@@ -88,6 +90,8 @@ class BotController extends AbstractController
     /**
      * @Route("/set_post_time")
      *
+     * @param Request $request
+     *
      * @return Response
      */
     public function setPostTime(Request $request): Response
@@ -99,20 +103,24 @@ class BotController extends AbstractController
         return new Response('Значение *post_time* установлено');
     }
 
-    public function postBurndown(string $channel = 'my-test'): bool
+    public function postBurndown(string $channel): bool
     {
         $imgDir = 'img/' . $channel;
         if (!is_dir($imgDir) && !mkdir($imgDir, 0777, true)) {
             throw new RuntimeException(sprintf('Directory "%s" was not created', $imgDir));
         }
         $imgPath = $this->createChart($imgDir);
-        $chart = new Attachment();
-        $chart->setColor('info');
+
+        $chart = new Attachment('info');
         $chart->setImageUrl($this->serverUrl . '/' . $imgPath);
-        $message = new SlackMessage('');
+
+        $message = new SlackMessage($channel);
         $message->setChannel($channel);
-        $message->appendAttachment($chart);
-        return $this->bot->send($message);
+//        $message->appendAttachment($chart);
+        $message->setUsername('burndown-bot');
+        $this->bot->send($message);
+
+        return $imgPath;
     }
 
 
