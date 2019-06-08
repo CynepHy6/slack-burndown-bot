@@ -47,7 +47,7 @@ class BotController extends AbstractController
     public function index(): Response
     {
 //        $res = $this->postBurndown('GK9T8DU7N');
-//                $res = $this->createChart('.');
+        //                $res = $this->createChart('.');
         return new Response(
             "<html><body></body></html>"
         );
@@ -65,8 +65,6 @@ class BotController extends AbstractController
         $text = $request->get('text');
         Utils::validate($text, 'integer');
         $this->rapidViewId = (int) $text;
-        $channel = $request->get('channel_id');
-        $this->postBurndown($channel);
 
         return new Response('Значение *view_id* установлено');
     }
@@ -116,7 +114,7 @@ class BotController extends AbstractController
 
         $message = new SlackMessage($channel);
         $message->setChannel($channel);
-//        $message->appendAttachment($chart);
+        //        $message->appendAttachment($chart);
         $message->setUsername('burndown-bot');
         $this->bot->send($message);
 
@@ -145,5 +143,10 @@ class BotController extends AbstractController
         $builder = new BurnDownBuilder($reader);
 
         return $builder->build($imgDir);
+    }
+
+    private function getConfig()
+    {
+
     }
 }
