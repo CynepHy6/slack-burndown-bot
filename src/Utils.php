@@ -3,7 +3,7 @@
 
 namespace App;
 
-use Symfony\Component\HttpFoundation\Response;
+use App\Controller\BotController;
 
 class Utils
 {
@@ -30,20 +30,20 @@ class Utils
     }
 
     /**
-     * @param $var string
-     * @param $type string
+     * @param string $text
+     * @param string $type
      *
-     * @return bool|Response
+     * @return bool
      */
-    public static function validate($var, $type)
+    public static function validate(string $text, string $type): bool
     {
-        if ($type === 'integer' && !preg_match('/^\d+$/', $var)) {
-            return new Response('Неправильно. Для параметра *id* необходимо вводить целое число');
-
+        if (($type === BotController::SPRINT_ID || $type === BotController::RAPID_VIEW_ID) && !preg_match('/^\d+$/',
+                $text)) {
+            return false;
         }
 
-        if ($type === 'time' && !preg_match('/^\d{2}:\d{2}(:?:\d{2})?$/', $var)) {
-            return new Response('Неправильно. Для параметра *time* необходимо вводить время (hh:mm)');
+        if ($type === BotController::POST_TIME && !preg_match('/^\d{2}:\d{2}(?::\d{2})?$/', $text)) {
+            return false;
         }
         return true;
     }

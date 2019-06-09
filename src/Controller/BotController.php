@@ -5,8 +5,10 @@ namespace App\Controller;
 
 
 use App\BurnDownBuilder;
+use App\Entity\Channel;
 use App\SprintJsonReader;
 use App\Utils;
+use Exception;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,11 +21,11 @@ use WowApps\SlackBundle\Service\SlackBot;
 class BotController extends AbstractController
 {
     private $bot;
-    private $rapidViewId;
-    private $sprintId;
-    private $postTime;
     private $token;
     private $serverUrl;
+    public const RAPID_VIEW_ID = 'rapid_view_id';
+    public const POST_TIME     = 'post_time';
+    public const SPRINT_ID     = 'sprint_id';
 
 
     /**
@@ -34,8 +36,8 @@ class BotController extends AbstractController
     public function __construct(SlackBot $bot)
     {
         $this->bot = $bot;
-        $this->rapidViewId = '303';
-        $this->sprintId = '906';
+        //        rapidViewId = '303';
+        //        sprintId = '906';
         $this->token = $_ENV['ATLASSIAN_API_TOKEN'];
         $this->serverUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
     }
@@ -46,11 +48,48 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
-//        $res = $this->postBurndown('GK9T8DU7N');
+        //        $res = $this->postBurndown('GK9T8DU7N');
         //                $res = $this->createChart('.');
         return new Response(
-            "<html><body></body></html>"
+            '<html lang="en"><body>IT\'S WORKS</body></html>'
         );
+    }
+
+    public function paramStore(string $channelId, $param, string $type): Response
+    {
+        if (!Utils::validate($param, $type)) {
+            return new Response("Неправильный формат данных. Значение *$type* не установлено");
+        }
+        try {
+            $em = $this->getDoctrine()->getManager();
+            if (!$channel = $this->getDoctrine()
+                ->getRepository(Channel::class)
+                ->findOneBy(['channel_id' => $channelId])) {
+                $channel = new Channel();
+                $channel->setChannelId($channelId)
+                    ->setRapidViewId(0)
+                    ->setSprintId(0)
+                    ->setPostTime('10:00')
+                    ->setName($channelId);
+            }
+
+            switch ($type) {
+                case static::RAPID_VIEW_ID:
+                    $channel->setRapidViewId((int) $param);
+                    break;
+                case static::POST_TIME:
+                    $channel->setPostTime((string) $param);
+                    break;
+                case static::SPRINT_ID:
+                    $channel->setSprintId((int) $param);
+                    break;
+            }
+            $em->persist($channel);
+            $em->flush();
+        } catch (Exception $e) {
+            return new Response($e->getMessage());
+        }
+        return new Response("Значение *$type* установлено");
     }
 
     /**
@@ -63,10 +102,8 @@ class BotController extends AbstractController
     public function setRapidViewId(Request $request): Response
     {
         $text = $request->get('text');
-        Utils::validate($text, 'integer');
-        $this->rapidViewId = (int) $text;
-
-        return new Response('Значение *view_id* установлено');
+        $channelId = $request->get('channel_id');
+        return $this->paramStore($channelId, $text, static::RAPID_VIEW_ID);
     }
 
     /**
@@ -79,10 +116,8 @@ class BotController extends AbstractController
     public function setSprintId(Request $request): Response
     {
         $text = $request->get('text');
-        Utils::validate($text, 'integer');
-        $this->sprintId = (int) $text;
-
-        return new Response('Значение *sprint_id* установлено');
+        $channelId = $request->get('channel_id');
+        return $this->paramStore($channelId, $text, static::SPRINT_ID);
     }
 
     /**
@@ -94,26 +129,24 @@ class BotController extends AbstractController
      */
     public function setPostTime(Request $request): Response
     {
-        $time = $request->get('text');
-        Utils::validate($time, 'time');
-        $this->postTime = $time;
-
-        return new Response('Значение *post_time* установлено');
+        $text = $request->get('text');
+        $channelId = $request->get('channel_id');
+        return $this->paramStore($channelId, $text, static::POST_TIME);
     }
 
-    public function postBurndown(string $channel): bool
+    public function postBurndown(string $channelId): bool
     {
-        $imgDir = 'img/' . $channel;
+        $imgDir = 'img/' . $channelId;
         if (!is_dir($imgDir) && !mkdir($imgDir, 0777, true)) {
             throw new RuntimeException(sprintf('Directory "%s" was not created', $imgDir));
         }
-        $imgPath = $this->createChart($imgDir);
+        $imgPath = $this->createChart($imgDir, $channelId);
 
         $chart = new Attachment('info');
         $chart->setImageUrl($this->serverUrl . '/' . $imgPath);
 
-        $message = new SlackMessage($channel);
-        $message->setChannel($channel);
+        $message = new SlackMessage($channelId);
+        $message->setChannel($channelId);
         //        $message->appendAttachment($chart);
         $message->setUsername('burndown-bot');
         $this->bot->send($message);
@@ -122,11 +155,18 @@ class BotController extends AbstractController
     }
 
 
-    private function createChart($imgDir): string
+    private function createChart(string $imgDir, string $channelId): string
     {
+        if (!$channel = $this->getDoctrine()
+            ->getRepository(Channel::class)
+            ->findOneBy(['channel_id' => $channelId])) {
+            return '';
+        }
+        $rapidViewId = $channel->getRapidViewId();
+        $sprintId = $channel->getSprintId();
         $params = http_build_query([
-            'rapidViewId' => $this->rapidViewId,
-            'sprintId'    => $this->sprintId,
+            'rapidViewId' => $rapidViewId,
+            'sprintId'    => $sprintId,
         ]);
         $url = 'https://devjira.skyeng.ru/rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart?' . $params;
         $key = $this->token;
@@ -145,8 +185,4 @@ class BotController extends AbstractController
         return $builder->build($imgDir);
     }
 
-    private function getConfig()
-    {
-
-    }
 }
