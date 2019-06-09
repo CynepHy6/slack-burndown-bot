@@ -1,4 +1,7 @@
 {
+    "amenadiel/jpgraph": {
+        "version": "4.0.0"
+    },
     "doctrine/annotations": {
         "version": "1.0",
         "recipe": {
@@ -277,9 +280,6 @@
     },
     "symfony/yaml": {
         "version": "v4.3.0"
-    },
-    "szymach/c-pchart": {
-        "version": "v3.0.7"
     },
     "wow-apps/symfony-slack-bot": {
         "version": "4.0",

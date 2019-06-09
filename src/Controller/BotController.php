@@ -36,8 +36,8 @@ class BotController extends AbstractController
     public function __construct(SlackBot $bot)
     {
         $this->bot = $bot;
-        //        rapidViewId = '303';
-        //        sprintId = '906';
+        // rapidViewId = '303';
+        // sprintId = '906';
         $this->token = $_ENV['ATLASSIAN_API_TOKEN'];
         $this->serverUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
     }
@@ -49,9 +49,9 @@ class BotController extends AbstractController
     public function index(): Response
     {
         //        $res = $this->postBurndown('GK9T8DU7N');
-        //                $res = $this->createChart('.');
+        $res = $this->createChart('.', 'GK19P65UG');
         return new Response(
-            '<html lang="en"><body>IT\'S WORKS</body></html>'
+            "<html lang='en'><body>IT'S WORKS<p><img src='$res'></p></body></html>"
         );
     }
 

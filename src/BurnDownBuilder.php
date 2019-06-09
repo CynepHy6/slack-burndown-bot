@@ -4,8 +4,8 @@
 namespace App;
 
 
-use CpChart\Data;
-use CpChart\Image;
+use Amenadiel\JpGraph\Graph;
+use Amenadiel\JpGraph\Plot;
 
 class BurnDownBuilder
 {
@@ -70,88 +70,67 @@ class BurnDownBuilder
 
         $lines = [
             'data'   => [
-                ['name' => 'Target', 'data' => $targetLine],
-                ['name' => 'Logged', 'data' => $loggedLine],
-                ['name' => 'Real', 'data' => $realLine],
+                ['name' => 'Target', 'color' => 'navy', 'data' => $targetLine],
+                ['name' => 'Logged', 'color' => 'red', 'data' => $loggedLine],
+                ['name' => 'Real', 'color' => 'orange', 'data' => $realLine],
             ],
             'common' => [],
         ];
-        $lines = $this->prepareData($lines);
+        //        $lines = $this->prepareData($lines);
 
+        //        return $this->createChart($lines, $imgDir);
         return $this->createChart($lines, $imgDir);
-    }
-
-    private function prepareData(array $lines): array
-    {
-        $common = [];
-        foreach ($lines['data'] as $line) {
-            foreach ($line['data'] as $item) {
-                if (!isset($common[$item['x']])) {
-                    $common[$item['x']] = VOID;
-                }
-            }
-        }
-        $data = [];
-        ksort($common, SORT_NUMERIC);
-        //        Utils::log($common);
-
-        foreach ($lines['data'] as $line) {
-            $commonCopy = $common;
-            foreach ($line['data'] as $item) {
-                $commonCopy[$item['x']] = $item['y'] / 60;
-            }
-            $line['data'] = array_values($commonCopy);
-            $data[] = $line;
-        }
-        $lines['data'] = $data;
-        $lines['common'] = $common;
-        return $lines;
     }
 
     public function createChart(array $lines, string $imgDir): string
     {
-        /* Build a dataset */
-        $data = new Data();
-        foreach ($lines['data'] as $chartData) {
-            $data->addPoints($chartData['data'], $chartData['name']);
-        }
-        $data->setAxisName(0, 'Time spent');
-        $data->addPoints($lines['common'], 'Labels');
-        $data->setSerieDescription('Labels', 'Date');
-        $data->setAbscissa('Labels');
-        $data->setAbscissaName('Date record');
-
-        /* Create the 1st chart */
+        // Setup the graph
         $width = 1000;
         $height = 900;
-        $pad = 80;
-        $image = new Image($width, $height, $data);
-        $image->setGraphArea($pad, $pad, $width - $pad, $height - $pad);
-        $image->drawFilledRectangle($pad, $pad, $width - $pad, $height - $pad, [
-            'R'           => 255,
-            'G'           => 255,
-            'B'           => 255,
-            'Surrounding' => -200,
-            'Alpha'       => 10,
-        ]);
-        $image->drawScale(['DrawSubTicks' => false]);
-        $image->setShadow(true, ['X' => 1, 'Y' => 1, 'R' => 0, 'G' => 0, 'B' => 0, 'Alpha' => 10]);
-        $image->setFontProperties(['FontSize' => 10]);
-        $image->drawLineChart([
-            'DisplayValues' => false,
-            'DisplayColor'  => DISPLAY_AUTO,
-            'BreakVoid'     => false,
-            'VoidTicks'     => 0,
-        ]);
-        $image->setShadow(false);
+        $xpad = 50;
+        $ypad = 10;
+        $title = 'Sprint burndown';
 
-        /* Write the legend */
-        $image->drawLegend($width / 2 - 100, $height / 4 - 100,
-            ['Style' => LEGEND_NOBORDER, 'Mode' => LEGEND_HORIZONTAL]);
-        $fileName = $imgDir . '/chart' . time() . '.png';
-        //        $image->autoOutput($fileName);
-        $image->render($fileName);
-        return $fileName;
+        $graph = new Graph\Graph($width, $height);
+        $graph->SetScale('datint'); // x-axis: 'dat'e, y-axis: 'int'eger
+        $graph->SetMargin($xpad, $xpad, $ypad, $ypad);
+        $graph->title->Set($title);
+        $graph->ygrid->SetFill(true, '#EFEFEF@0.5', '#BBCCFF@0.5'); // фон полотна
+
+        $graph->legend->SetShadow('gray@0.4', 5);
+        $graph->legend->SetPos(0.7, 0.05);
+
+
+        // Setup the callback and adjust the angle of the labels
+        $graph->xaxis->SetLabelFormatCallback(static function ($xval) {
+            return date('m-d H:i', $xval);
+        });
+        $graph->xaxis->SetLabelAngle(90);
+        // Set the labels every $interval seconds
+        $interval = 24 * 3600;
+        $graph->xaxis->scale->ticks->Set($interval);
+
+        // Create lines
+        foreach ($lines['data'] as $line) {
+            $datay = Utils::flatten($line['data'], 'y');
+            $datay = array_map(static function ($y) {
+                return $y / 3600;
+            }, $datay);
+            $datax = Utils::flatten($line['data'], 'x');
+            $plot = new Plot\LinePlot($datay, $datax);
+            $plot->SetColor($line['color']);
+            $plot->SetLegend($line['name']);
+            $graph->Add($plot);
+        }
+
+        // Output line
+        $imgName = $this->generateImgName($imgDir);
+        $graph->Stroke($imgName);
+        return $imgName;
     }
 
+    private function generateImgName(string $imgDir): string
+    {
+        return $imgDir . '/chart' . time() . '.png';
+    }
 }
