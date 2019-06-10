@@ -11,6 +11,7 @@ use App\Utils;
 use Exception;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -46,8 +47,7 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
-        $res = $this->postBurndown('GK9T8DU7N');
-        //        $res = $this->createChart('.', 'GK9T8DU7N');
+        $res = $this->postBurndown('GK19P65UG');
         return new Response(
             "<html lang='en'><body bgcolor='black'>IT'S WORKS<p><img src='$res'></p></body></html>"
         );
@@ -87,6 +87,29 @@ class BotController extends AbstractController
             return new Response($e->getMessage());
         }
         return new Response("Значение *$type* установлено");
+    }
+
+    /**
+     * @Route("/show")
+     *
+     * @param Request $request
+     *
+     * @return JsonResponse
+     */
+    public function show(Request $request): JsonResponse
+    {
+        $channelId = $request->get('channel_id');
+        $url = str_replace('show', '', $this->serverUrl) . $this->postBurndown($channelId);
+        $attach = [
+            'attachments' => [
+                [
+                    'color'     => '#2196F3',
+                    'fallback'  => "Can't display attachment in plain-text mode",
+                    'image_url' => $url,
+                ],
+            ],
+        ];
+        return new JsonResponse($attach);
     }
 
     /**
@@ -136,15 +159,15 @@ class BotController extends AbstractController
      *
      * @return string
      */
-    public function postBurndown(string $channelId): string
+    public function postBurndown(string $channelId): ?string
     {
         if (!$channel = $this->getDoctrine()
             ->getRepository(Channel::class)
             ->findOneBy(['channel_id' => $channelId])) {
-            return '';
+            return 'Channel not found';
         }
         if (!$webhook = $channel->getWebhook()) {
-            return '';
+            return 'Webhook not found';
         }
         $imgDir = 'img/' . $channelId;
         if (!is_dir($imgDir) && !mkdir($imgDir, 0777, true)) {
