@@ -17,11 +17,17 @@
     "symfony/maker-bundle": "^1.11",
     "symfony/orm-pack": "^1.0",
     "symfony/yaml": "4.3.*",
-    "wow-apps/symfony-slack-bot": "^4.0"
+    "wow-apps/symfony-slack-bot": "dev-webhook-fix"
   },
   "require-dev": {
     "roave/security-advisories": "dev-master"
   },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/cynephy6/symfony-slack-bot"
+    }
+  ],
   "config": {
     "preferred-install": {
       "*": "dist"

@@ -69,12 +69,11 @@ class BurnDownBuilder
         $loggedLine[] = ['x' => $lastEntry, 'y' => $last['y']];
 
         $lines = [
-            'data'   => [
-                ['name' => 'Target', 'color' => 'navy', 'data' => $targetLine],
-                ['name' => 'Logged', 'color' => 'red', 'data' => $loggedLine],
-                ['name' => 'Real', 'color' => 'orange', 'data' => $realLine],
+            'data' => [
+                ['name' => 'Guideline', 'color' => 'navy', 'data' => $targetLine],
+                ['name' => 'Time spent', 'color' => 'red', 'data' => $loggedLine],
+                ['name' => 'Remaining values', 'color' => 'orange', 'data' => $realLine],
             ],
-            'common' => [],
         ];
         //        $lines = $this->prepareData($lines);
 
@@ -86,7 +85,7 @@ class BurnDownBuilder
     {
         // Setup the graph
         $width = 1000;
-        $height = 900;
+        $height = 700;
         $xpad = 50;
         $ypad = 10;
         $title = 'Sprint burndown';
@@ -98,14 +97,14 @@ class BurnDownBuilder
         $graph->ygrid->SetFill(true, '#EFEFEF@0.5', '#BBCCFF@0.5'); // фон полотна
 
         $graph->legend->SetShadow('gray@0.4', 5);
-        $graph->legend->SetPos(0.7, 0.05);
+        $graph->legend->SetPos(0.1, 0.05);
 
 
         // Setup the callback and adjust the angle of the labels
         $graph->xaxis->SetLabelFormatCallback(static function ($xval) {
-            return date('m-d H:i', $xval);
+            return date('M d', $xval);
         });
-        $graph->xaxis->SetLabelAngle(90);
+        //        $graph->xaxis->SetLabelAngle(90);
         // Set the labels every $interval seconds
         $interval = 24 * 3600;
         $graph->xaxis->scale->ticks->Set($interval);

@@ -4,6 +4,8 @@
 namespace App;
 
 
+use Zend\Code\Scanner\Util;
+
 class SprintJsonReader
 {
     /**
@@ -62,14 +64,19 @@ class SprintJsonReader
 
     public function startEstimation(): int
     {
-        $data = [];
-        foreach ($this->jsonChangesByDateTime() as $item) {
-            foreach ($item as $key => $val) {
-                if ($key < $this->sprintStart()) {
-                    $data[] = [$key => $val];
-                }
-            }
-        }
+        $data = array_filter($this->jsonChangesByDateTime(), function ($item) {
+            return $item[0] < $this->sprintStart();
+        });
+//        Utils::log($data);
+//        $data = array_map(function ($item) {
+//            [$key, $val] = $item;
+//            $val = array_map(function ($singleStory) {
+//
+//
+//            }, $val);
+//        }, $data);
+        $data = array_reverse($data);
+
         $data = Utils::flatten($data, 'newEstimate');
         return array_sum($data);
     }

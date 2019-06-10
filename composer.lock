@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "73d8baa0a3f72e2b35953ceaccda1b18",
+    "content-hash": "134515a4abb301e1362c6e001f2e59b3",
     "packages": [
         {
             "name": "amenadiel/jpgraph",
@@ -3925,16 +3925,16 @@
         },
         {
             "name": "wow-apps/symfony-slack-bot",
-            "version": "4.0.2",
+            "version": "dev-webhook-fix",
             "source": {
                 "type": "git",
-                "url": "https://github.com/wow-apps/symfony-slack-bot.git",
-                "reference": "6118a97b058e3f1132355ae2b942b6c65ecb8469"
+                "url": "https://github.com/CynepHy6/symfony-slack-bot.git",
+                "reference": "7c06e5be5f9ac3e265ab015e05596da902efa45f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/wow-apps/symfony-slack-bot/zipball/6118a97b058e3f1132355ae2b942b6c65ecb8469",
-                "reference": "6118a97b058e3f1132355ae2b942b6c65ecb8469",
+                "url": "https://api.github.com/repos/CynepHy6/symfony-slack-bot/zipball/7c06e5be5f9ac3e265ab015e05596da902efa45f",
+                "reference": "7c06e5be5f9ac3e265ab015e05596da902efa45f",
                 "shasum": ""
             },
             "require": {
@@ -3963,29 +3963,33 @@
                     "/Tests/"
                 ]
             },
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "authors": [
                 {
                     "name": "Alexey Samara",
+                    "role": "lead",
                     "email": "lion.samara@gmail.com",
-                    "homepage": "https://wow-apps.pro",
-                    "role": "lead"
+                    "homepage": "https://wow-apps.pro"
                 }
             ],
             "description": "Simple Symfony 3 and 4 Bundle for sending customizeable messages to Slack via incoming webhooks",
             "homepage": "https://wow-apps.github.io/symfony-slack-bot/",
             "keywords": [
-                "Symfony 3",
-                "Symfony 4",
                 "slack",
                 "slack bot",
                 "slackbot",
-                "symfony"
+                "symfony",
+                "symfony 3",
+                "symfony 4"
             ],
-            "time": "2019-05-13T10:53:37+00:00"
+            "support": {
+                "issues": "https://github.com/wow-apps/symfony-slack-bot/issues",
+                "wiki": "https://github.com/wow-apps/symfony-slack-bot/wiki",
+                "source": "https://github.com/wow-apps/symfony-slack-bot"
+            },
+            "time": "2019-06-10T09:56:12+00:00"
         },
         {
             "name": "zendframework/zend-code",
@@ -4311,6 +4315,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "wow-apps/symfony-slack-bot": 20,
         "roave/security-advisories": 20
     },
     "prefer-stable": false,

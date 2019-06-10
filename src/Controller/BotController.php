@@ -20,9 +20,8 @@ use WowApps\SlackBundle\Service\SlackBot;
 
 class BotController extends AbstractController
 {
-    private $bot;
-    private $token;
     private $serverUrl;
+    private $bot;
     public const RAPID_VIEW_ID = 'rapid_view_id';
     public const POST_TIME     = 'post_time';
     public const SPRINT_ID     = 'sprint_id';
@@ -35,10 +34,9 @@ class BotController extends AbstractController
      */
     public function __construct(SlackBot $bot)
     {
-        $this->bot = $bot;
         // rapidViewId = '303';
         // sprintId = '906';
-        $this->token = $_ENV['ATLASSIAN_API_TOKEN'];
+        $this->bot = $bot;
         $this->serverUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
     }
 
@@ -48,10 +46,10 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
-        //        $res = $this->postBurndown('GK9T8DU7N');
-        $res = $this->createChart('.', 'GK19P65UG');
+        $res = $this->postBurndown('GK9T8DU7N');
+        //        $res = $this->createChart('.', 'GK9T8DU7N');
         return new Response(
-            "<html lang='en'><body>IT'S WORKS<p><img src='$res'></p></body></html>"
+            "<html lang='en'><body bgcolor='black'>IT'S WORKS<p><img src='$res'></p></body></html>"
         );
     }
 
@@ -72,7 +70,6 @@ class BotController extends AbstractController
                     ->setPostTime('10:00')
                     ->setName($channelId);
             }
-
             switch ($type) {
                 case static::RAPID_VIEW_ID:
                     $channel->setRapidViewId((int) $param);
@@ -134,8 +131,21 @@ class BotController extends AbstractController
         return $this->paramStore($channelId, $text, static::POST_TIME);
     }
 
-    public function postBurndown(string $channelId): bool
+    /**
+     * @param string $channelId
+     *
+     * @return string
+     */
+    public function postBurndown(string $channelId): string
     {
+        if (!$channel = $this->getDoctrine()
+            ->getRepository(Channel::class)
+            ->findOneBy(['channel_id' => $channelId])) {
+            return '';
+        }
+        if (!$webhook = $channel->getWebhook()) {
+            return '';
+        }
         $imgDir = 'img/' . $channelId;
         if (!is_dir($imgDir) && !mkdir($imgDir, 0777, true)) {
             throw new RuntimeException(sprintf('Directory "%s" was not created', $imgDir));
@@ -145,10 +155,14 @@ class BotController extends AbstractController
         $chart = new Attachment('info');
         $chart->setImageUrl($this->serverUrl . '/' . $imgPath);
 
-        $message = new SlackMessage($channelId);
-        $message->setChannel($channelId);
-        //        $message->appendAttachment($chart);
+        $message = new SlackMessage();
+        $message->setChannel($channel->getName());
+        $message->appendAttachment($chart);
         $message->setUsername('burndown-bot');
+        $config = $this->bot->getConfig();
+        $config['api_url'] = $webhook;
+        $this->bot->setConfig($config);
+
         $this->bot->send($message);
 
         return $imgPath;
@@ -169,7 +183,7 @@ class BotController extends AbstractController
             'sprintId'    => $sprintId,
         ]);
         $url = 'https://devjira.skyeng.ru/rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart?' . $params;
-        $key = $this->token;
+        $key = $_ENV['ATLASSIAN_API_TOKEN'];
 
         $context = stream_context_create([
             'http' => [
