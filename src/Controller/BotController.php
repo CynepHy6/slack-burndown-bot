@@ -38,7 +38,7 @@ class BotController extends AbstractController
         // rapidViewId = '303';
         // sprintId = '906';
         $this->bot = $bot;
-        $this->serverUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+        $this->serverUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]/slack-burndown-bot/";
     }
 
     /**
@@ -99,17 +99,7 @@ class BotController extends AbstractController
     public function show(Request $request): JsonResponse
     {
         $channelId = $request->get('channel_id');
-        $url = str_replace('show', '', $this->serverUrl) . $this->postBurndown($channelId);
-        $attach = [
-            'attachments' => [
-                [
-                    'color'     => '#2196F3',
-                    'fallback'  => "Can't display attachment in plain-text mode",
-                    'image_url' => $url,
-                ],
-            ],
-        ];
-        return new JsonResponse($attach);
+        return new JsonResponse($this->postBurndown($channelId, true));
     }
 
     /**
@@ -157,9 +147,11 @@ class BotController extends AbstractController
     /**
      * @param string $channelId
      *
-     * @return string
+     * @param bool   $isResponse
+     *
+     * @return array|string
      */
-    public function postBurndown(string $channelId): ?string
+    public function postBurndown(string $channelId, $isResponse = false)
     {
         if (!$channel = $this->getDoctrine()
             ->getRepository(Channel::class)
@@ -174,6 +166,18 @@ class BotController extends AbstractController
             throw new RuntimeException(sprintf('Directory "%s" was not created', $imgDir));
         }
         $imgPath = $this->createChart($imgDir, $channelId);
+        if ($isResponse) {
+            $url = $this->serverUrl . $imgPath;
+            $attach = [
+                'attachments' => [
+                    [
+                        'color'     => '#2196F3',
+                        'image_url' => $url,
+                    ],
+                ],
+            ];
+            return $attach;
+        }
 
         $chart = new Attachment('info');
         $chart->setImageUrl($this->serverUrl . '/' . $imgPath);
@@ -185,9 +189,7 @@ class BotController extends AbstractController
         $config = $this->bot->getConfig();
         $config['api_url'] = $webhook;
         $this->bot->setConfig($config);
-
         $this->bot->send($message);
-
         return $imgPath;
     }
 
