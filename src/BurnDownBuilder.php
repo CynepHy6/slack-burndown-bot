@@ -102,7 +102,7 @@ class BurnDownBuilder
 
         // Setup the callback and adjust the angle of the labels
         $graph->xaxis->SetLabelFormatCallback(static function ($xval) {
-            return date('M d'.PHP_EOL.'H:i', $xval);
+            return date('M d' . PHP_EOL . 'H:i', $xval);
         });
         //        $graph->xaxis->SetLabelAngle(90);
         // Set the labels every $interval seconds
@@ -123,7 +123,6 @@ class BurnDownBuilder
             $graph->Add($plot);
         }
 
-        // Output line
         $imgName = $this->generateImgName($imgDir);
         $graph->Stroke($imgName);
         return $imgName;

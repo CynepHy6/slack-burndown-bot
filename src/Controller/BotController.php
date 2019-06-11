@@ -8,9 +8,11 @@ use App\BurnDownBuilder;
 use App\Entity\Channel;
 use App\SprintJsonReader;
 use App\Utils;
+use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,8 +23,9 @@ use WowApps\SlackBundle\Service\SlackBot;
 
 class BotController extends AbstractController
 {
-    private $serverUrl;
     private $bot;
+    private $em;
+    public const SERVER_URL    = 'https://simpletask.skyeng.tech/slack-burndown-bot/';
     public const RAPID_VIEW_ID = 'rapid_view_id';
     public const POST_TIME     = 'post_time';
     public const SPRINT_ID     = 'sprint_id';
@@ -31,14 +34,31 @@ class BotController extends AbstractController
     /**
      * BotController constructor.
      *
-     * @param SlackBot $bot
+     * @param SlackBot               $bot
+     * @param EntityManagerInterface $em
      */
-    public function __construct(SlackBot $bot)
+    public function __construct(SlackBot $bot, EntityManagerInterface $em)
     {
-        // rapidViewId = '303';
-        // sprintId = '906';
         $this->bot = $bot;
-        $this->serverUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]/slack-burndown-bot/";
+        $this->em = $em;
+
+    }
+
+    /**
+     * Выполнение отправки графика в канал по расписанию
+     *
+     * @param OutputInterface $output
+     */
+    public function sheduleRun(OutputInterface $output): void
+    {
+        $time = date('H:i');
+
+        /** @var Channel[] $channels */
+
+        $channels = $this->em->getRepository(Channel::class)->findBy(['post_time' => $time]);
+        foreach ($channels as $channel) {
+            $this->postBurndown($channel->getChannelId());
+        }
     }
 
     /**
@@ -47,10 +67,11 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
-        $res = $this->createChart('.', 'GK19P65UG'); //906
-//        $res = $this->createChart('.', 'GK9T8DU7N'); //916
+        //        $res = $this->createChart('.', 'GK19P65UG'); //906
+        //        $res = $this->createChart('.', 'GK9T8DU7N'); //916
         return new Response(
-            "<html lang='en'><body bgcolor='black'>IT'S WORKS<p><img src='$res'></p></body></html>"
+            "<html lang='en'><body>IT'S WORKS</body></html>"
+        //            "<html lang='en'><body bgcolor='black'>IT'S WORKS<p><img src='$res' alt=''></p></body></html>"
         );
     }
 
@@ -60,9 +81,7 @@ class BotController extends AbstractController
             return new Response("Неправильный формат данных. Значение *$type* не установлено");
         }
         try {
-            $em = $this->getDoctrine()->getManager();
-            if (!$channel = $this->getDoctrine()
-                ->getRepository(Channel::class)
+            if (!$channel = $this->em->getRepository(Channel::class)
                 ->findOneBy(['channel_id' => $channelId])) {
                 $channel = new Channel();
                 $channel->setChannelId($channelId)
@@ -82,8 +101,8 @@ class BotController extends AbstractController
                     $channel->setSprintId((int) $param);
                     break;
             }
-            $em->persist($channel);
-            $em->flush();
+            $this->em->persist($channel);
+            $this->em->flush();
         } catch (Exception $e) {
             return new Response($e->getMessage());
         }
@@ -154,8 +173,7 @@ class BotController extends AbstractController
      */
     public function postBurndown(string $channelId, $isResponse = false)
     {
-        if (!$channel = $this->getDoctrine()
-            ->getRepository(Channel::class)
+        if (!$channel = $this->em->getRepository(Channel::class)
             ->findOneBy(['channel_id' => $channelId])) {
             return 'Channel not found';
         }
@@ -163,17 +181,22 @@ class BotController extends AbstractController
             return 'Webhook not found';
         }
         $imgDir = 'img/' . $channelId;
-        if (!is_dir($imgDir) && !mkdir($imgDir, 0777, true)) {
-            throw new RuntimeException(sprintf('Directory "%s" was not created', $imgDir));
-        }
-        $imgPath = $this->createChart($imgDir, $channelId);
-        if ($isResponse) {
-            $url = $this->serverUrl . $imgPath;
+
+        $imgPath = $this->generateChart($imgDir, $channelId);
+        $imgUrl = self::SERVER_URL . $imgPath;
+        if ($isResponse) { // команда /show
+            $pretext = [
+                'post_time'     => $channel->getPostTime(),
+                'rapid_view_id' => $channel->getRapidViewId(),
+                'sprint_id'     => $channel->getSprintId(),
+                'channel_id'    => $channel->getChannelId(),
+            ];
             $attach = [
                 'attachments' => [
                     [
+                        'pretext'   => json_encode($pretext, JSON_PRETTY_PRINT),
                         'color'     => '#2196F3',
-                        'image_url' => $url,
+                        'image_url' => $imgUrl,
                     ],
                 ],
             ];
@@ -181,32 +204,39 @@ class BotController extends AbstractController
         }
 
         $chart = new Attachment('info');
-        $chart->setImageUrl($this->serverUrl . '/' . $imgPath);
+        $chart->setImageUrl($imgUrl);
 
         $message = new SlackMessage();
         $message->setChannel($channel->getName());
         $message->appendAttachment($chart);
         $message->setUsername('burndown-bot');
+
         $config = $this->bot->getConfig();
         $config['api_url'] = $webhook;
         $this->bot->setConfig($config);
         $this->bot->send($message);
-        return $imgPath;
+        return $imgUrl;
     }
 
 
-    private function createChart(string $imgDir, string $channelId): string
+    private function generateChart(string $imgDir, string $channelId): string
     {
-        if (!$channel = $this->getDoctrine()
-            ->getRepository(Channel::class)
+        if (is_dir('public')) {
+            //            костыл  для одинакового поведения при запуске из консоли и с реквеста
+            chdir('public');
+        }
+        if (!is_dir($imgDir) && !mkdir($imgDir, 0777, true)) {
+            throw new RuntimeException(sprintf('Directory "%s" was not created', $imgDir));
+        }
+        if (!$channel = $this->em->getRepository(Channel::class)
             ->findOneBy(['channel_id' => $channelId])) {
             return '';
         }
         $rapidViewId = $channel->getRapidViewId();
         $sprintId = $channel->getSprintId();
         $params = http_build_query([
-            'rapidViewId'       => $rapidViewId,
-            'sprintId'          => $sprintId
+            'rapidViewId' => $rapidViewId,
+            'sprintId'    => $sprintId,
         ]);
         $url = 'https://devjira.skyeng.ru/rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart?' . $params;
         $key = $_ENV['ATLASSIAN_API_TOKEN'];
