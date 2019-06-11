@@ -47,7 +47,8 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
-        $res = $this->postBurndown('GK19P65UG');
+        $res = $this->createChart('.', 'GK19P65UG'); //906
+//        $res = $this->createChart('.', 'GK9T8DU7N'); //916
         return new Response(
             "<html lang='en'><body bgcolor='black'>IT'S WORKS<p><img src='$res'></p></body></html>"
         );
@@ -204,8 +205,8 @@ class BotController extends AbstractController
         $rapidViewId = $channel->getRapidViewId();
         $sprintId = $channel->getSprintId();
         $params = http_build_query([
-            'rapidViewId' => $rapidViewId,
-            'sprintId'    => $sprintId,
+            'rapidViewId'       => $rapidViewId,
+            'sprintId'          => $sprintId
         ]);
         $url = 'https://devjira.skyeng.ru/rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart?' . $params;
         $key = $_ENV['ATLASSIAN_API_TOKEN'];

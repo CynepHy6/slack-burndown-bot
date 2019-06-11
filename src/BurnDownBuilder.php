@@ -71,8 +71,8 @@ class BurnDownBuilder
         $lines = [
             'data' => [
                 ['name' => 'Guideline', 'color' => 'navy', 'data' => $targetLine],
-                ['name' => 'Time spent', 'color' => 'red', 'data' => $loggedLine],
-                ['name' => 'Remaining values', 'color' => 'orange', 'data' => $realLine],
+                ['name' => 'Time spent', 'color' => 'darkgreen', 'data' => $loggedLine],
+                ['name' => 'Remaining values', 'color' => 'red', 'data' => $realLine],
             ],
         ];
         //        $lines = $this->prepareData($lines);
@@ -84,7 +84,7 @@ class BurnDownBuilder
     public function createChart(array $lines, string $imgDir): string
     {
         // Setup the graph
-        $width = 1000;
+        $width = 1200;
         $height = 700;
         $xpad = 50;
         $ypad = 10;
@@ -102,11 +102,11 @@ class BurnDownBuilder
 
         // Setup the callback and adjust the angle of the labels
         $graph->xaxis->SetLabelFormatCallback(static function ($xval) {
-            return date('M d', $xval);
+            return date('M d'.PHP_EOL.'H:i', $xval);
         });
         //        $graph->xaxis->SetLabelAngle(90);
         // Set the labels every $interval seconds
-        $interval = 24 * 3600;
+        $interval = 12 * 3600;
         $graph->xaxis->scale->ticks->Set($interval);
 
         // Create lines
@@ -118,6 +118,7 @@ class BurnDownBuilder
             $datax = Utils::flatten($line['data'], 'x');
             $plot = new Plot\LinePlot($datay, $datax);
             $plot->SetColor($line['color']);
+            $plot->SetWeight(2);
             $plot->SetLegend($line['name']);
             $graph->Add($plot);
         }

@@ -4,8 +4,6 @@
 namespace App;
 
 
-use Zend\Code\Scanner\Util;
-
 class SprintJsonReader
 {
     /**
@@ -20,6 +18,10 @@ class SprintJsonReader
      * @var int
      */
     public $sprint_end;
+    /**
+     * @var array
+     */
+    private $rates;
 
     /**
      * SprintJsonReader constructor.
@@ -31,6 +33,7 @@ class SprintJsonReader
         $this->json = json_decode($json, true);
         $this->sprint_start = (int) ($this->json['startTime'] / 1000);
         $this->sprint_end = (int) ($this->json['endTime'] / 1000);
+        $this->rates = $this->json['workRateData']['rates'] ?? []; // TODO: rates
 
     }
 
@@ -47,15 +50,16 @@ class SprintJsonReader
     public function jsonChangesByDateTime(): array
     {
         $data = array_filter($this->json['changes'], static function ($item) {
-            $dataItem = array_filter($item, static function ($item) {
-                return !empty($item['timeC']);
+            $dataItem = array_filter($item, static function ($it) {
+                return !empty($it['timeC']);
             });
             return count($dataItem) > 0;
         });
+
         $res = [];
         foreach ($data as $key => $val) {
-            $timeChanges = array_filter($val, static function ($item) {
-                return !empty($item['timeC']);
+            $timeChanges = array_filter($val, static function ($val) {
+                return !empty($val['timeC']);
             });
             $res[] = [date('Y-m-d H:i:s', (int) ($key / 1000)), $timeChanges];
         }
@@ -65,20 +69,16 @@ class SprintJsonReader
     public function startEstimation(): int
     {
         $data = array_filter($this->jsonChangesByDateTime(), function ($item) {
-            return $item[0] < $this->sprintStart();
+            return $item[0] <= $this->sprintStart();
         });
-//        Utils::log($data);
-//        $data = array_map(function ($item) {
-//            [$key, $val] = $item;
-//            $val = array_map(function ($singleStory) {
-//
-//
-//            }, $val);
-//        }, $data);
-        $data = array_reverse($data);
-
-        $data = Utils::flatten($data, 'newEstimate');
-        return array_sum($data);
+        $estimateData = Utils::flatten($data, 'oldEstimate');
+        $res = array_reduce($estimateData, static function ($sum, $num) {
+            if ($num > 0) {
+                return $sum + $num;
+            }
+            return $sum;
+        });
+        return $res;
     }
 
     public function changesDuringSprint(): array
@@ -89,9 +89,9 @@ class SprintJsonReader
         $data = array_map(static function ($item) {
             [$key, $value] = $item;
             $durationChange = array_reduce($value, static function ($sum, $val) {
-                $sum -= ((int) $val['timeC']['oldEstimate'] - (int) $val['timeC']['newEstimate']);
-                return $sum;
-
+                $old = (int) $val['timeC']['oldEstimate'];
+                $new = (int) $val['timeC']['newEstimate'];
+                return $sum - ($old - $new);
             }, 0);
             return [$key, $durationChange];
         }, $data);
@@ -111,7 +111,8 @@ class SprintJsonReader
             [$key, $value] = $item;
             $timeSpent = array_reduce($value, static function ($sum, $val) {
                 if (isset($val['timeC']['timeSpent'])) {
-                    $sum += (int) $val['timeC']['timeSpent'];
+                    $spent = (int) $val['timeC']['timeSpent'];
+                    return $sum + $spent;
                 }
                 return $sum;
             });
