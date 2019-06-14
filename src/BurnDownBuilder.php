@@ -22,6 +22,7 @@ class BurnDownBuilder
     }
 
     /**
+     * prepare data for chart
      * @param $imgDir
      * converted function from Ruby to PHP
      * https://github.com/vossim/dashing-jira-burndown/blob/master/jobs/jira_burndown.rb#buildBurnDown
@@ -81,6 +82,13 @@ class BurnDownBuilder
         return $this->createChart($lines, $imgDir);
     }
 
+    /**
+     * draw chart
+     * @param array  $lines
+     * @param string $imgDir
+     *
+     * @return string
+     */
     public function createChart(array $lines, string $imgDir): string
     {
         // Setup the graph
@@ -128,6 +136,11 @@ class BurnDownBuilder
         return $imgName;
     }
 
+    /**
+     * @param string $imgDir
+     *
+     * @return string
+     */
     private function generateImgName(string $imgDir): string
     {
         return $imgDir . '/chart' . time() . '.png';

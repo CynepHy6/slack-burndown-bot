@@ -75,6 +75,13 @@ class BotController extends AbstractController
         );
     }
 
+    /**
+     * @param string $channelId
+     * @param        $param
+     * @param string $type
+     *
+     * @return Response
+     */
     public function paramStore(string $channelId, $param, string $type): Response
     {
         if (!Utils::validate($param, $type)) {
@@ -165,6 +172,7 @@ class BotController extends AbstractController
     }
 
     /**
+     * used from cron sheduller for sending chart to slack-channel
      * @param string $channelId
      *
      * @param bool   $isResponse
@@ -219,6 +227,13 @@ class BotController extends AbstractController
     }
 
 
+    /**
+     * get data from jira greenhopper api, create chart and return path to chart-file
+     * @param string $imgDir
+     * @param string $channelId
+     *
+     * @return string
+     */
     private function generateChart(string $imgDir, string $channelId): string
     {
         if (is_dir('public')) {

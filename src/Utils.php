@@ -7,6 +7,12 @@ use App\Controller\BotController;
 
 class Utils
 {
+    /**
+     * @param array  $array
+     * @param string $key
+     *
+     * @return array
+     */
     public static function flatten(array $array, $key = ''): array
     {
         $return = [];
@@ -24,6 +30,9 @@ class Utils
         return $return;
     }
 
+    /**
+     * @param mixed ...$a
+     */
     public static function log(...$a): void
     {
         echo json_encode($a, JSON_PRETTY_PRINT);
