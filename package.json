@@ -1,0 +1,7 @@
+{
+  "name": "slack-burndown-bot",
+  "version": "1.0.0",
+  "dependencies": {
+    "puppeteer": "^1.17.0"
+  }
+}

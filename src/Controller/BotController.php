@@ -4,9 +4,7 @@
 namespace App\Controller;
 
 
-use App\BurnDownBuilder;
 use App\Entity\Channel;
-use App\SprintJsonReader;
 use App\Utils;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
@@ -17,7 +15,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use WowApps\SlackBundle\DTO\Attachment;
 use WowApps\SlackBundle\DTO\SlackMessage;
 use WowApps\SlackBundle\Service\SlackBot;
 
@@ -25,10 +22,11 @@ class BotController extends AbstractController
 {
     private $bot;
     private $em;
-    public const SERVER_URL    = 'https://simpletask.skyeng.tech/slack-burndown-bot/';
-    public const RAPID_VIEW_ID = 'rapid_view_id';
-    public const POST_TIME     = 'post_time';
-    public const SPRINT_ID     = 'sprint_id';
+    public const  SERVER_URL    = 'https://simpletask.skyeng.tech/slack-burndown-bot/';
+    public const  RAPID_VIEW_ID = 'rapid_view_id';
+    public const  POST_TIME     = 'post_time';
+    public const  SPRINT_ID     = 'sprint_id';
+    public const  NODE          = '/usr/local/lib/nodejs/node-v10.15.2-linux-x64/bin/node';
 
 
     /**
@@ -41,7 +39,20 @@ class BotController extends AbstractController
     {
         $this->bot = $bot;
         $this->em = $em;
+    }
 
+    /**
+     * @Route("/")
+     * @return Response
+     */
+    public function index(): Response
+    {
+        //        $res = $this->createChart('.', 'GK19P65UG'); //906
+        $res = $this->generateChart('img', 'GK9T8DU7N'); //916
+        return new Response(
+        //            "<html lang='en'><body>IT'S WORKS</body></html>"
+            "<html lang='en'><body bgcolor='white'>IT'S WORKS<p><img src='$res' alt=''></p></body></html>"
+        );
     }
 
     /**
@@ -59,20 +70,6 @@ class BotController extends AbstractController
         foreach ($channels as $channel) {
             $this->postBurndown($channel->getChannelId());
         }
-    }
-
-    /**
-     * @Route("/")
-     * @return Response
-     */
-    public function index(): Response
-    {
-        //        $res = $this->createChart('.', 'GK19P65UG'); //906
-        //        $res = $this->createChart('.', 'GK9T8DU7N'); //916
-        return new Response(
-            "<html lang='en'><body>IT'S WORKS</body></html>"
-        //            "<html lang='en'><body bgcolor='black'>IT'S WORKS<p><img src='$res' alt=''></p></body></html>"
-        );
     }
 
     /**
@@ -126,6 +123,8 @@ class BotController extends AbstractController
     public function show(Request $request): JsonResponse
     {
         $channelId = $request->get('channel_id');
+        $responseUrl = $request->get('response_url');
+
         return new JsonResponse($this->postBurndown($channelId, true));
     }
 
@@ -173,6 +172,7 @@ class BotController extends AbstractController
 
     /**
      * used from cron sheduller for sending chart to slack-channel
+     *
      * @param string $channelId
      *
      * @param bool   $isResponse
@@ -188,10 +188,6 @@ class BotController extends AbstractController
         if (!$webhook = $channel->getWebhook()) {
             return 'Webhook not found';
         }
-        $imgDir = 'img/' . $channelId;
-
-        $imgPath = $this->generateChart($imgDir, $channelId);
-        $imgUrl = self::SERVER_URL . $imgPath;
         if ($isResponse) { // команда /show
             $pretext = [
                 'post_time'     => $channel->getPostTime(),
@@ -202,21 +198,19 @@ class BotController extends AbstractController
             $attach = [
                 'attachments' => [
                     [
-                        'pretext'   => json_encode($pretext, JSON_PRETTY_PRINT),
-                        'color'     => '#2196F3',
-                        'image_url' => $imgUrl,
+                        'pretext' => json_encode($pretext, JSON_PRETTY_PRINT),
+                        'color'   => '#2196F3',
                     ],
                 ],
             ];
             return $attach;
         }
-
-        $chart = new Attachment('info');
-        $chart->setImageUrl($imgUrl);
-
+        $imgDir = 'img/' . $channelId;
+        $imgPath = $this->generateChart($imgDir, $channelId);
+        $imgUrl = self::SERVER_URL . $imgPath;
         $message = new SlackMessage();
         $message->setChannel($channel->getName());
-        $message->appendAttachment($chart);
+        $message->setText($imgUrl);
         $message->setUsername('burndown-bot');
 
         $config = $this->bot->getConfig();
@@ -228,7 +222,8 @@ class BotController extends AbstractController
 
 
     /**
-     * get data from jira greenhopper api, create chart and return path to chart-file
+     * get clipping chart from jira and return path to chart-file
+     *
      * @param string $imgDir
      * @param string $channelId
      *
@@ -237,7 +232,7 @@ class BotController extends AbstractController
     private function generateChart(string $imgDir, string $channelId): string
     {
         if (is_dir('public')) {
-            //            костыл  для одинакового поведения при запуске из консоли и с реквеста
+            // костыль  для одинакового поведения при запуске из консоли и с реквеста
             chdir('public');
         }
         if (!is_dir($imgDir) && !mkdir($imgDir, 0777, true)) {
@@ -249,25 +244,13 @@ class BotController extends AbstractController
         }
         $rapidViewId = $channel->getRapidViewId();
         $sprintId = $channel->getSprintId();
-        $params = http_build_query([
-            'rapidViewId' => $rapidViewId,
-            'sprintId'    => $sprintId,
-        ]);
-        $url = 'https://devjira.skyeng.ru/rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart?' . $params;
-        $key = $_ENV['ATLASSIAN_API_TOKEN'];
+        $token = $_ENV['ATLASSIAN_API_TOKEN'];
+        $script = '../chromium_run.js';
 
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'header' => "Content-Type: application/json\r\n" .
-                    "Authorization: Basic $key\r\n",
-            ],
-        ]);
-        $jsonData = file_get_contents($url, false, $context);
-        $reader = new SprintJsonReader($jsonData);
-        $builder = new BurnDownBuilder($reader);
-
-        return $builder->build($imgDir);
+        if (!file_exists($script)) {
+            return 'failed';
+        }
+        return shell_exec(static::NODE . " $script $rapidViewId $sprintId $imgDir $token");
     }
-
 }
+
