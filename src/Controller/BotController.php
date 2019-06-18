@@ -47,20 +47,17 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
-        //        $res = $this->createChart('.', 'GK19P65UG'); //906
-        $res = $this->generateChart('img', 'GK9T8DU7N'); //916
+        //        $res = $this->generateChart('img', 'GK9T8DU7N'); //916
         return new Response(
-        //            "<html lang='en'><body>IT'S WORKS</body></html>"
-            "<html lang='en'><body bgcolor='white'>IT'S WORKS<p><img src='$res' alt=''></p></body></html>"
+            "<html lang='en'><body>IT'S WORKS</body></html>"
+        //            "<html lang='en'><body bgcolor='white'>IT'S WORKS<p><img src='$res' alt=''></p></body></html>"
         );
     }
 
     /**
      * Выполнение отправки графика в канал по расписанию
-     *
-     * @param OutputInterface $output
      */
-    public function sheduleRun(OutputInterface $output): void
+    public function sheduleRun(): void
     {
         $time = date('H:i');
 

@@ -45,7 +45,7 @@ class PostBurndownCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $bc = new BotController($this->bot, $this->em);
-        $bc->sheduleRun($output);
+        $bc->sheduleRun();
     }
 
 }
