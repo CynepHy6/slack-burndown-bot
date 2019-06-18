@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer')
 
-const api = 'https://devjira.skyeng.ru/secure/RapidBoard.jspa?projectKey=KIDSMOB&view=reporting&chart=burndownChart&'
+const api = 'https://devjira.skyeng.ru/secure/RapidBoard.jspa?view=reporting&chart=burndownChart&'
 const rapidViewId = process.argv[2]
 const sprintId = process.argv[3]
 const url = api + `rapidViewId=${rapidViewId}&sprintId=${sprintId}`
