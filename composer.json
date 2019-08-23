@@ -6,7 +6,6 @@
     "ext-ctype": "*",
     "ext-iconv": "*",
     "ext-json": "*",
-    "amenadiel/jpgraph": "4",
     "cron/cron-bundle": "^2.1",
     "sensio/framework-extra-bundle": "^5.3",
     "symfony/apache-pack": "^1.0",
