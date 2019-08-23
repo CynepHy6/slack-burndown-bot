@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer')
 const api = 'https://devjira.skyeng.ru/secure/RapidBoard.jspa?view=reporting&chart=burndownChart&'
 const rapidViewId = process.argv[2]
 const sprintId = process.argv[3]
-const url = api + `rapidViewId=${rapidViewId}&sprintId=${sprintId}`
+const url = api + `rapidViewId=${rapidViewId}&sprint=${sprintId}`
 const imgPath = process.argv[4] + '/chart' + parseInt(Date.now()/1000) + '.png'
 const token = process.argv[5]
 const selectorCanvas = '#ghx-chart-view .overlay'
