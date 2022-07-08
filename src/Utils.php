@@ -8,37 +8,6 @@ use App\Controller\BotController;
 class Utils
 {
     /**
-     * @param array  $array
-     * @param string $key
-     *
-     * @return array
-     */
-    public static function flatten(array $array, $key = ''): array
-    {
-        $return = [];
-        if ($key === '') {
-            array_walk_recursive($array, static function ($a) use (&$return) {
-                $return[] = $a;
-            });
-        } else {
-            array_walk_recursive($array, static function ($a, $k) use (&$return, &$key) {
-                if ($k === $key) {
-                    $return[] = $a;
-                }
-            });
-        }
-        return $return;
-    }
-
-    /**
-     * @param mixed ...$a
-     */
-    public static function log(...$a): void
-    {
-        echo json_encode($a, JSON_PRETTY_PRINT);
-    }
-
-    /**
      * @param string $text
      * @param string $type
      *

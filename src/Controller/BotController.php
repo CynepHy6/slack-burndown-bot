@@ -47,10 +47,8 @@ class BotController extends AbstractController
      */
     public function index(): Response
     {
-        //        $res = $this->generateChart('img', 'GK9T8DU7N'); //916
         return new Response(
             "<html lang='en'><body>IT'S WORKS</body></html>"
-        //            "<html lang='en'><body bgcolor='white'>IT'S WORKS<p><img src='$res' alt=''></p></body></html>"
         );
     }
 
@@ -120,7 +118,6 @@ class BotController extends AbstractController
     public function show(Request $request): JsonResponse
     {
         $channelId = $request->get('channel_id');
-        $responseUrl = $request->get('response_url');
 
         return new JsonResponse($this->postBurndown($channelId, true));
     }
